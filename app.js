@@ -8,6 +8,7 @@ var Promise = require('promise');
 var fs = require('fs');
 var sqlite3 = require('sqlite3').verbose()
 var db = new sqlite3.Database('database.sqlite3')
+var mailer = require('express-mailer');
 
 app = require('express')();
 
@@ -22,8 +23,12 @@ ldapSetts.tlsOptions = {
 	  }
 }
 
+mailer.extend(app, settings.mailer);
+
 var auth = new LdapAuth(ldapSetts);
 
+app.set('views', __dirname + '/views');
+app.set('view engine', 'jade');
 app.set('jwtTokenSecret', settings.jwt.secret);
 
 var authenticate = function (username, password) {
@@ -95,7 +100,7 @@ app.post('/login', function (req, res) {
 	}
 });
 
-app.get('/request', function (req, res) {
+app.post('/sponsor', function (req, res) {
 	var token = req.headers.token;
 	if (token) {
 		try {
@@ -104,10 +109,59 @@ app.get('/request', function (req, res) {
 			if (decoded.exp <= parseInt(moment().format("X"))) {
 				res.status(400).send({ error: 'Access token has expired'});
 			} else {
-				db.all('SELECT * FROM request', (error, rows) => {
+				db.run('UPDATE request SET Apadrinado = 1 WHERE request_id like ?', [req.body.request_id], (error, rows) => {})
+				db.get('SELECT Correo FROM request WHERE request_id = ?', [req.body.request_id], (err, row) => {
+					console.log(err)
+					console.log(req.body.request_id)
+					db.run('INSERT INTO sponsor VALUES(?,?)', [decoded.user_name, row.Correo], (error, rows) => { 
+						var errors = 0;
+						app.mailer.send('toProfessor', {
+							to: decoded.user_name + '@unal.edu.co',
+							subject: '[Apadrina un Estudiante] Gracias!',
+						  }, (err) => {
+								(err) => {
+									errors++;
+							  res.status(400).json('There was an error sending the email to '+ decoded.user_name + '@unal.edu.co');
+							  return;
+							}
+						});
+						app.mailer.send('toStudent', {
+							to: row.Correo,
+							subject: '[Apadrina un Estudiante] Fuiste apadrinado!',
+						  }, (err) => {
+								if (err && errors !== 0) {
+									errors++;
+									res.status(400).json('There was an error sending the email to '+ row.Correo);
+							  return;
+							}
+						});
+						if (errors === 0) {
+							res.json({ "sentTo": row.Correo });	
+						}
+						
+					})
+				})
+			}
+		} catch (err) {
+			res.status(500).send({ error: 'Access token could not be decoded'});
+		}
+	} else {
+		res.status(400).send({ error: 'Access token is missing'});
+	}
+})
+
+app.get('/prequest', function (req, res) {
+	var token = req.headers.token;
+	if (token) {
+		try {
+			var decoded = jwt.decode(token, app.get('jwtTokenSecret'));
+
+			if (decoded.exp <= parseInt(moment().format("X"))) {
+				res.status(400).send({ error: 'Access token has expired'});
+			} else {
+				db.all('SELECT request_id, Programa, Fecha, PBM, Procedencia, Apoyo, Descripcion FROM request where Apadrinado = 0', (error, rows) => { 
 					res.json(rows);
 				})
-				
 			}
 		} catch (err) {
 			res.status(500).send({ error: 'Access token could not be decoded'});
@@ -118,8 +172,11 @@ app.get('/request', function (req, res) {
 });
 
 app.post('/request', function (req, res) {
-	var query = 'INSERT INTO request VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+	var query = 'INSERT INTO request VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
 	db.run(query, [
+		undefined,
+		req.body.Correo,
+		req.body.Fecha,
 		req.body.Programa,
 		req.body.Tipo_Documento,
 		req.body.Documento,
@@ -129,7 +186,8 @@ app.post('/request', function (req, res) {
 		req.body.Direccion,
 		req.body.Apoyo,
 		req.body.Descripcion,
-	], (err) => { })
+		0,
+	], (err) => {})
 	res.status(200).send({status:'I tried all my best'})
 })
 
