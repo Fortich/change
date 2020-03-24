@@ -120,16 +120,17 @@ app.get('/request', function (req, res) {
 app.post('/request', function (req, res) {
 	var query = 'INSERT INTO request VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
 	db.run(query, [
-		res.body.Programa,
-		res.body.Tipo_Documento,
-		res.body.Documento,
-		res.body.PBM,
-		res.body.Procedencia,
-		res.body.Celular,
-		res.body.Direccion,
-		res.body.Apoyo,
-		res.body.Descripcion,
-	], (err) => {})
+		req.body.Programa,
+		req.body.Tipo_Documento,
+		req.body.Documento,
+		req.body.PBM,
+		req.body.Procedencia,
+		req.body.Celular,
+		req.body.Direccion,
+		req.body.Apoyo,
+		req.body.Descripcion,
+	], (err) => { })
+	res.status(200).send({status:'I tried all my best'})
 })
 
 var port = (process.env.PORT || 3000);
