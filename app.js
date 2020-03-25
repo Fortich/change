@@ -60,8 +60,8 @@ app.post('/login', (req, res) => {
               mail: user.mail,
             }, app.get('jwtTokenSecret'));
             db.get(
-                'SELECT count(user) as count FROM professors WHERE user "' +
-                'like ' + user.uid + '"',
+                'SELECT count(user) as count FROM professors WHERE user ' +
+                'like "' + user.uid + '"',
                 (err, row) => {
                   if (row.count===0) {
                     res.status(401)
