@@ -149,7 +149,7 @@ app.get('/prequest', (req, res) => {
         const query = 'SELECT request_id, Programa, Fecha, PBM, Procedencia, ' +
           'Apoyo, Descripcion FROM request where Apadrinado = 0';
         db.all(query, (error, rows) => {
-          res.json(rows);
+          res.json({rows});
         });
       }
     } catch (err) {
@@ -178,7 +178,9 @@ app.post('/request', (req, res) => {
     req.body.Apoyo,
     req.body.Descripcion,
     0,
-  ], (err) => {console.log(err)});
+  ], (err) => {
+    console.log(err);
+  });
   res.status(200).send({status: 'I tried all my best'});
 });
 
