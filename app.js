@@ -9,6 +9,7 @@ const fs = require('fs');
 const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database('database.sqlite3');
 const mailer = require('express-mailer');
+const haml = require('hamljs');
 
 app = require('express')();
 
@@ -28,7 +29,8 @@ mailer.extend(app, settings.mailer);
 let auth = new LdapAuth(ldapSetts);
 
 app.set('views', __dirname + '/views');
-app.set('view engine', 'jade');
+app.set('view engine', 'hamljs');
+app.engine('.haml', haml.renderFile);
 app.set('jwtTokenSecret', settings.jwt.secret);
 
 const authenticate = (username, password) => {
@@ -97,7 +99,7 @@ app.post('/sponsor', (req, res) => {
         db.run('UPDATE request SET Apadrinado = 1 WHERE request_id like ?',
             [req.body.request_id],
             (error, rows) => { });
-        db.get('SELECT Correo FROM request WHERE request_id = ?',
+        db.get('SELECT * FROM request WHERE request_id = ?',
             [req.body.request_id],
             (err, row) => {
               db.run('INSERT INTO sponsor VALUES(?,?)',
@@ -107,24 +109,20 @@ app.post('/sponsor', (req, res) => {
                     app.mailer.send('toProfessor', {
                       to: decoded.user_name + '@unal.edu.co',
                       subject: '[Apadrina un Estudiante] Gracias!',
+                      Nombre: row.Nombre,
+                      Correo: row.Correo,
+                      Programa: row.Programa,
+                      Celular: row.Celular,
+                      Direccion: row.Direccion,
+                      PBM: row.PBM,
+                      Procedencia: row.Procedencia,
+                      Apoyo: row.Apoyo,
                     }, (err) => {
                       errors++;
                       res.status(400)
                           .json('There was an error sending the email to ' +
                             decoded.user_name + '@unal.edu.co');
                       return;
-                    });
-                    app.mailer.send('toStudent', {
-                      to: row.Correo,
-                      subject: '[Apadrina un Estudiante] Fuiste apadrinado!',
-                    }, (err) => {
-                      if (err && errors !== 0) {
-                        errors++;
-                        res.status(400)
-                            .json('There was an error sending the email to ' +
-                            decoded.user_name + '@unal.edu.co');
-                        return;
-                      }
                     });
                     if (errors === 0) {
                       res.json({'sentTo': row.Correo});
@@ -164,9 +162,10 @@ app.get('/prequest', (req, res) => {
 
 app.post('/request', (req, res) => {
   const query = 'INSERT INTO request VALUES (?, ?, ?, ?, ?, ?, ?, ' +
-    '?, ?, ?, ?, ?, ?)';
+    '?, ?, ?, ?, ?, ?, ?)';
   db.run(query, [
     undefined,
+    req.body.Nombre,
     req.body.Correo,
     req.body.Fecha,
     req.body.Programa,
@@ -179,7 +178,7 @@ app.post('/request', (req, res) => {
     req.body.Apoyo,
     req.body.Descripcion,
     0,
-  ], (err) => { });
+  ], (err) => {console.log(err)});
   res.status(200).send({status: 'I tried all my best'});
 });
 
