@@ -35,3 +35,4 @@ config/conf.json
 database.sqlite3
 
 .vscode
+.env

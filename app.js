@@ -8,20 +8,21 @@ const Promise = require('promise');
 const fs = require('fs');
 const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database('database.sqlite3');
-const mailer = require('express-mailer');
-const haml = require('hamljs');
+const nodemailer = require('nodemailer');
+const hbs = require('nodemailer-express-handlebars');
 
 app = require('express')();
 
+//  app.use(bodyParser.urlencoded({extended: false}));
 
-
-//app.use(bodyParser.urlencoded({extended: false}));
-
-app.use(bodyParser.json());var MailConfig = require('./config/email.js');
-var hbs = require('nodemailer-express-handlebars');
-var gmailTransport = MailConfig.GmailTransport;
-var smtpTransport = MailConfig.SMTPTransport;
+app.use(bodyParser.json());
 app.use(require('cors')());
+
+const gmailTransport = nodemailer.createTransport('SMTP', settings.mailer);
+// gmailTransport.use('compile', hbs({
+//   viewPath: 'views/email',
+//   extName: '.hbs',
+// }));
 
 ldapSetts = settings.ldap;
 ldapSetts.tlsOptions = {
@@ -30,11 +31,7 @@ ldapSetts.tlsOptions = {
   },
 };
 
-mailer.extend(app, settings.mailer);
-
 let auth = new LdapAuth(ldapSetts);
-
-
 
 
 app.set('views', __dirname + '/views');
@@ -115,29 +112,18 @@ app.post('/sponsor', (req, res) => {
               db.run('INSERT INTO sponsor VALUES(?,?)',
                   [decoded.user_name, row.Correo],
                   (error, rows) => {
-                  let errors = 0;
-                    console.log("here")
-                    MailConfig.ViewOption(gmailTransport,hbs);
-                    let HelperOptions = {
-                      from: '"David Garay" <Edgarayf@unal.edu.co>',
-                      to: 'Edgarayf@unal.edu.co',
+                    const HelperOptions = {
+                      from: '"Uapapp" <uapapp_fibog@unal.edu.co>',
+                      to: 'uapapp_fibog@unal.edu.co',
                       subject: 'Hellow world!',
-                      template: 'test',
-                      context: {
-                        name:"",
-                        email: "EMail bien",
-                        address: "lo que sea"
-                      }
+                      html: '<p> Hollo </p>',
                     };
-                    console.log("here2")
-                    gmailTransport.sendMail(HelperOptions, (error,info) => {
-                      if(error) {
+                    gmailTransport.sendMail(HelperOptions, (error, info) => {
+                      if (error) {
                         console.log(error);
                         res.json(error);
                       }
-                      console.log("email is send");
-                      console.log(info);
-                      res.json(info)
+                      res.json(info);
                     });
                   });
             });
