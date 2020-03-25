@@ -8,14 +8,15 @@ const Promise = require('promise');
 const fs = require('fs');
 const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database('database.sqlite3');
-const mailer = require('express-mailer');
-const haml = require('hamljs');
+const nodemailer = require('nodemailer');
+const hbs = require('handlebars');
 
 app = require('express')();
 
-app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
 app.use(require('cors')());
+
+const gmailTransport = nodemailer.createTransport('SMTP', settings.mailer);
 
 ldapSetts = settings.ldap;
 ldapSetts.tlsOptions = {
@@ -24,13 +25,8 @@ ldapSetts.tlsOptions = {
   },
 };
 
-mailer.extend(app, settings.mailer);
-
 let auth = new LdapAuth(ldapSetts);
 
-app.set('views', __dirname + '/views');
-app.set('view engine', 'hamljs');
-app.engine('.haml', haml.renderFile);
 app.set('jwtTokenSecret', settings.jwt.secret);
 
 const authenticate = (username, password) => {
@@ -105,28 +101,32 @@ app.post('/sponsor', (req, res) => {
               db.run('INSERT INTO sponsor VALUES(?,?)',
                   [decoded.user_name, row.Correo],
                   (error, rows) => {
-                    let errors = 0;
-                    app.mailer.send('toProfessor', {
-                      to: decoded.user_name + '@unal.edu.co',
-                      subject: '[Apadrina un Estudiante] Gracias!',
-                      Nombre: row.Nombre,
-                      Correo: row.Correo,
-                      Programa: row.Programa,
-                      Celular: row.Celular,
-                      Direccion: row.Direccion,
-                      PBM: row.PBM,
-                      Procedencia: row.Procedencia,
-                      Apoyo: row.Apoyo,
-                    }, (err) => {
-                      errors++;
-                      res.status(400)
-                          .json('There was an error sending the email to ' +
-                            decoded.user_name + '@unal.edu.co');
-                      return;
+                    const emailCompiled = hbs.compile(
+                        fs.readFileSync('views/email/toProfessor.hbs')
+                            .toString(),
+                    )({
+                      nombre: row.Nombre,
+                      programa: row.Programa,
+                      pbm: row.PBM,
+                      procedencia: row.Procedencia,
+                      apoyo: row.Apoyo,
+                      correo: row.Correo,
+                      celular: row.Celular,
+                      direccion: row.Direccion,
                     });
-                    if (errors === 0) {
-                      res.json({'sentTo': row.Correo});
-                    }
+                    const HelperOptions = {
+                      from: 'Decanatura de Ingenieria<decfaci_bog@unal.edu.co>',
+                      to: decoded.mail,
+                      subject: '[Apoya UN] Gracias!',
+                      html: emailCompiled,
+                    };
+                    gmailTransport.sendMail(HelperOptions, (error, info) => {
+                      if (error) {
+                        console.log(error);
+                        res.json(error);
+                      }
+                      res.json(info);
+                    });
                   });
             });
       }
@@ -178,10 +178,16 @@ app.post('/request', (req, res) => {
     req.body.Apoyo,
     req.body.Descripcion,
     0,
+<<<<<<< HEAD
   ], (err) => {
+=======
+  ],
+  (err) => {
+>>>>>>> nodo
     console.log(err);
   });
   res.status(200).send({status: 'I tried all my best'});
+  res.status(400).send({status: 'wrong format or some atributes missing'});
 });
 
 const port = (process.env.PORT || 3000);
