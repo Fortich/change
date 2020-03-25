@@ -19,10 +19,10 @@ app.use(bodyParser.json());
 app.use(require('cors')());
 
 const gmailTransport = nodemailer.createTransport('SMTP', settings.mailer);
-// gmailTransport.use('compile', hbs({
-//   viewPath: 'views/email',
-//   extName: '.hbs',
-// }));
+gmailTransport.use('compile', hbs({
+  viewPath: 'views/email',
+  extName: '.hbs',
+}));
 
 ldapSetts = settings.ldap;
 ldapSetts.tlsOptions = {
@@ -54,8 +54,6 @@ const authenticate = (username, password) => {
 };
 
 app.post('/login', (req, res) => {
-  //onsole.log(req.body.username)
-  //console.log(req.body.password)
   if (req.body.username && req.body.password) {
     if (/^[a-zA-Z]/.test(req.body.username)) {
       authenticate(req.body.username, req.body.password)
@@ -97,7 +95,8 @@ app.post('/login', (req, res) => {
 });
 
 app.post('/sponsor', (req, res) => {
-  const token = req.headers.token;  if (token) {
+  const token = req.headers.token;
+  if (token) {
     try {
       const decoded = jwt.decode(token, app.get('jwtTokenSecret'));
       if (decoded.exp <= parseInt(moment().format('X'))) {
@@ -138,7 +137,7 @@ app.post('/sponsor', (req, res) => {
 
 app.get('/prequest', (req, res) => {
   const token = req.headers.token;
-   if (token) {
+  if (token) {
     try {
       const decoded = jwt.decode(token, app.get('jwtTokenSecret'));
       if (decoded.exp <= parseInt(moment().format('X'))) {
@@ -159,8 +158,6 @@ app.get('/prequest', (req, res) => {
 });
 
 app.post('/request', (req, res) => {
-
-  
   const query = 'INSERT INTO request VALUES (?, ?, ?, ?, ?, ?, ?, ' +
     '?, ?, ?, ?, ?, ?, ?)';
   db.run(query, [
@@ -179,15 +176,11 @@ app.post('/request', (req, res) => {
     req.body.Descripcion,
     0,
   ],
-  
   (err) => {
     console.log(err);
-    
   });
   res.status(200).send({status: 'I tried all my best'});
   res.status(400).send({status: 'wrong format or some atributes missing'});
-  
-    
 });
 
 const port = (process.env.PORT || 3000);
