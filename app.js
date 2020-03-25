@@ -9,20 +9,14 @@ const fs = require('fs');
 const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database('database.sqlite3');
 const nodemailer = require('nodemailer');
-const hbs = require('nodemailer-express-handlebars');
+const hbs = require('hbs');
 
 app = require('express')();
-
-//  app.use(bodyParser.urlencoded({extended: false}));
 
 app.use(bodyParser.json());
 app.use(require('cors')());
 
 const gmailTransport = nodemailer.createTransport('SMTP', settings.mailer);
-gmailTransport.use('compile', hbs({
-  viewPath: 'views/email',
-  extName: '.hbs',
-}));
 
 ldapSetts = settings.ldap;
 ldapSetts.tlsOptions = {
@@ -33,10 +27,6 @@ ldapSetts.tlsOptions = {
 
 let auth = new LdapAuth(ldapSetts);
 
-
-app.set('views', __dirname + '/views');
-app.set('view engine', 'haml');
-app.engine('.haml', require('hamljs').renderFile);
 app.set('jwtTokenSecret', settings.jwt.secret);
 
 const authenticate = (username, password) => {
@@ -110,12 +100,13 @@ app.post('/sponsor', (req, res) => {
             (err, row) => {
               db.run('INSERT INTO sponsor VALUES(?,?)',
                   [decoded.user_name, row.Correo],
-                  (error, rows) => {
+                (error, rows) => {
+                    const hbsFile = fs.readFileSync('views/email/toProfessor.hbs');
                     const HelperOptions = {
                       from: '"Uapapp" <uapapp_fibog@unal.edu.co>',
                       to: 'uapapp_fibog@unal.edu.co',
                       subject: 'Hellow world!',
-                      html: '<p> Hollo </p>',
+                      html: hbs.compile(hbsFile),
                     };
                     gmailTransport.sendMail(HelperOptions, (error, info) => {
                       if (error) {
