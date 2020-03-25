@@ -13,8 +13,14 @@ const haml = require('hamljs');
 
 app = require('express')();
 
-app.use(bodyParser.urlencoded({extended: false}));
-app.use(bodyParser.json());
+
+
+//app.use(bodyParser.urlencoded({extended: false}));
+
+app.use(bodyParser.json());var MailConfig = require('./config/email.js');
+var hbs = require('nodemailer-express-handlebars');
+var gmailTransport = MailConfig.GmailTransport;
+var smtpTransport = MailConfig.SMTPTransport;
 app.use(require('cors')());
 
 ldapSetts = settings.ldap;
@@ -28,9 +34,12 @@ mailer.extend(app, settings.mailer);
 
 let auth = new LdapAuth(ldapSetts);
 
+
+
+
 app.set('views', __dirname + '/views');
-app.set('view engine', 'hamljs');
-app.engine('.haml', haml.renderFile);
+app.set('view engine', 'haml');
+app.engine('.haml', require('hamljs').renderFile);
 app.set('jwtTokenSecret', settings.jwt.secret);
 
 const authenticate = (username, password) => {
@@ -48,6 +57,8 @@ const authenticate = (username, password) => {
 };
 
 app.post('/login', (req, res) => {
+  //onsole.log(req.body.username)
+  //console.log(req.body.password)
   if (req.body.username && req.body.password) {
     if (/^[a-zA-Z]/.test(req.body.username)) {
       authenticate(req.body.username, req.body.password)
@@ -89,8 +100,7 @@ app.post('/login', (req, res) => {
 });
 
 app.post('/sponsor', (req, res) => {
-  const token = req.headers.token;
-  if (token) {
+  const token = req.headers.token;  if (token) {
     try {
       const decoded = jwt.decode(token, app.get('jwtTokenSecret'));
       if (decoded.exp <= parseInt(moment().format('X'))) {
@@ -105,28 +115,30 @@ app.post('/sponsor', (req, res) => {
               db.run('INSERT INTO sponsor VALUES(?,?)',
                   [decoded.user_name, row.Correo],
                   (error, rows) => {
-                    let errors = 0;
-                    app.mailer.send('toProfessor', {
-                      to: decoded.user_name + '@unal.edu.co',
-                      subject: '[Apadrina un Estudiante] Gracias!',
-                      Nombre: row.Nombre,
-                      Correo: row.Correo,
-                      Programa: row.Programa,
-                      Celular: row.Celular,
-                      Direccion: row.Direccion,
-                      PBM: row.PBM,
-                      Procedencia: row.Procedencia,
-                      Apoyo: row.Apoyo,
-                    }, (err) => {
-                      errors++;
-                      res.status(400)
-                          .json('There was an error sending the email to ' +
-                            decoded.user_name + '@unal.edu.co');
-                      return;
+                  let errors = 0;
+                    console.log("here")
+                    MailConfig.ViewOption(gmailTransport,hbs);
+                    let HelperOptions = {
+                      from: '"David Garay" <Edgarayf@unal.edu.co>',
+                      to: 'Edgarayf@unal.edu.co',
+                      subject: 'Hellow world!',
+                      template: 'test',
+                      context: {
+                        name:"",
+                        email: "EMail bien",
+                        address: "lo que sea"
+                      }
+                    };
+                    console.log("here2")
+                    gmailTransport.sendMail(HelperOptions, (error,info) => {
+                      if(error) {
+                        console.log(error);
+                        res.json(error);
+                      }
+                      console.log("email is send");
+                      console.log(info);
+                      res.json(info)
                     });
-                    if (errors === 0) {
-                      res.json({'sentTo': row.Correo});
-                    }
                   });
             });
       }
@@ -140,7 +152,7 @@ app.post('/sponsor', (req, res) => {
 
 app.get('/prequest', (req, res) => {
   const token = req.headers.token;
-  if (token) {
+   if (token) {
     try {
       const decoded = jwt.decode(token, app.get('jwtTokenSecret'));
       if (decoded.exp <= parseInt(moment().format('X'))) {
@@ -149,7 +161,7 @@ app.get('/prequest', (req, res) => {
         const query = 'SELECT request_id, Programa, Fecha, PBM, Procedencia, ' +
           'Apoyo, Descripcion FROM request where Apadrinado = 0';
         db.all(query, (error, rows) => {
-          res.json(rows);
+          res.json({rows});
         });
       }
     } catch (err) {
@@ -161,6 +173,8 @@ app.get('/prequest', (req, res) => {
 });
 
 app.post('/request', (req, res) => {
+
+  
   const query = 'INSERT INTO request VALUES (?, ?, ?, ?, ?, ?, ?, ' +
     '?, ?, ?, ?, ?, ?, ?)';
   db.run(query, [
@@ -178,8 +192,16 @@ app.post('/request', (req, res) => {
     req.body.Apoyo,
     req.body.Descripcion,
     0,
-  ], (err) => {console.log(err)});
+  ],
+  
+  (err) => {
+    console.log(err);
+    
+  });
   res.status(200).send({status: 'I tried all my best'});
+  res.status(400).send({status: 'wrong format or some atributes missing'});
+  
+    
 });
 
 const port = (process.env.PORT || 3000);
