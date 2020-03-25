@@ -9,7 +9,7 @@ const fs = require('fs');
 const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database('database.sqlite3');
 const nodemailer = require('nodemailer');
-const hbs = require('hbs');
+const hbs = require('handlebars');
 
 app = require('express')();
 
@@ -100,13 +100,25 @@ app.post('/sponsor', (req, res) => {
             (err, row) => {
               db.run('INSERT INTO sponsor VALUES(?,?)',
                   [decoded.user_name, row.Correo],
-                (error, rows) => {
-                    const hbsFile = fs.readFileSync('views/email/toProfessor.hbs');
+                  (error, rows) => {
+                    const emailCompiled = hbs.compile(
+                        fs.readFileSync('views/email/toProfessor.hbs')
+                            .toString(),
+                    )({
+                      nombre: row.Nombre,
+                      programa: row.Programa,
+                      pbm: row.PBM,
+                      procedencia: row.Procedencia,
+                      apoyo: row.Apoyo,
+                      correo: row.Correo,
+                      celular: row.Celular,
+                      direccion: row.Direccion,
+                    });
                     const HelperOptions = {
-                      from: '"Uapapp" <uapapp_fibog@unal.edu.co>',
-                      to: 'uapapp_fibog@unal.edu.co',
-                      subject: 'Hellow world!',
-                      html: hbs.compile(hbsFile),
+                      from: 'Decanatura de Ingenieria<decfaci_bog@unal.edu.co>',
+                      to: decoded.mail,
+                      subject: '[Apoya UN] Gracias!',
+                      html: emailCompiled,
                     };
                     gmailTransport.sendMail(HelperOptions, (error, info) => {
                       if (error) {
