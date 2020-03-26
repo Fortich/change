@@ -178,12 +178,7 @@ app.post('/request', (req, res) => {
     req.body.Apoyo,
     req.body.Descripcion,
     0,
-<<<<<<< HEAD
   ], (err) => {
-=======
-  ],
-  (err) => {
->>>>>>> nodo
     console.log(err);
   });
   res.status(200).send({status: 'I tried all my best'});
