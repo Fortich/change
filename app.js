@@ -43,6 +43,23 @@ const authenticate = (username, password) => {
   });
 };
 
+app.get('/valid', (req, res) => {
+  if (req.headers.token) {
+    try {
+      const decoded = jwt.decode(req.headers.token, app.get('jwtTokenSecret'));
+      if (decoded.exp <= parseInt(moment().format('X'))) {
+        res.json({valid: 'no'});
+      } else {
+        res.json({valid: 'yes'});
+      }
+    } catch (err) {
+      res.json({valid: 'no'});
+    }
+  } else {
+    res.json({valid: 'no'});
+  }
+});
+
 app.post('/login', (req, res) => {
   if (req.body.username && req.body.password) {
     if (/^[a-zA-Z]/.test(req.body.username)) {
