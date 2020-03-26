@@ -138,6 +138,53 @@ app.post('/sponsor', (req, res) => {
   }
 });
 
+/**
+ * Says if register has Bogotá procedence.
+ * @param {string} procedencia The string to be compared.
+ * @return {int} 1 if provedencia is like bogota, 0 otherwise.
+ */
+function includesBogot(procedencia) {
+  if (procedencia.toString()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase().includes('bogota')) {
+    return 0;
+  } else {
+    return 1;
+  }
+}
+
+/**
+ * Puts a value for type of apoyo.
+ * @param {string} apoyo The string to be compared.
+ * @return {int} 1 if provedencia is like canasta,
+ * 0.5 if it is like tools and 0.3 otherwise.
+ */
+function typeSponsor(apoyo) {
+  const normalized =apoyo.toString()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+  if (normalized.includes('canasta')) {
+    return 1;
+  } else if (normalized.includes('herramientas')) {
+    return 0.5;
+  } else {
+    return 0.3;
+  }
+}
+
+/**
+ * Shows the priority level of register.
+ * @param {Register} row The register to be compared.
+ * @return {int} The value of the priority of the register.
+ */
+function getPrioriry(row) {
+  return 30 * ((100 - parseInt(row.PBM)) / 100) +
+    20 * includesBogot(row.Procedencia) +
+    50 * typeSponsor(row.Apoyo);
+}
+
 app.get('/prequest', (req, res) => {
   const token = req.headers.token;
   if (token) {
@@ -148,8 +195,19 @@ app.get('/prequest', (req, res) => {
       } else {
         const query = 'SELECT request_id, Programa, Fecha, PBM, Procedencia, ' +
           'Apoyo, Descripcion FROM request where Apadrinado = 0';
-        db.all(query, (error, rows) => {
-          res.json({rows});
+        db.all(query, (error, r) => {
+          try {
+            const rows = Array.prototype.slice.call(r);
+            rows.sort((a, b) => {
+              return getPrioriry(b) - getPrioriry(a);
+            });
+            res.json({rows});
+          } catch (err) {
+            res.status(500).send({
+              error: 'Error retriving values ' +
+                err.toString(),
+            });
+          }
         });
       }
     } catch (err) {
@@ -178,11 +236,11 @@ app.post('/request', (req, res) => {
     req.body.Apoyo,
     req.body.Descripcion,
     0,
-  ], (err) => {
+  ],
+  (err) => {
     console.log(err);
   });
   res.status(200).send({status: 'I tried all my best'});
-  res.status(400).send({status: 'wrong format or some atributes missing'});
 });
 
 const port = (process.env.PORT || 3000);
