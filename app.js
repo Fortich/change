@@ -1,5 +1,4 @@
 const settings = require('./config/conf.json');
-
 const bodyParser = require('body-parser');
 const jwt = require('jwt-simple');
 const moment = require('moment');
@@ -49,14 +48,18 @@ app.get('/valid', (req, res) => {
       const decoded = jwt.decode(req.headers.token, app.get('jwtTokenSecret'));
       if (decoded.exp <= parseInt(moment().format('X'))) {
         res.json({valid: 'no'});
+        return;
       } else {
         res.json({valid: 'yes'});
+        return;
       }
     } catch (err) {
       res.json({valid: 'no'});
+      return;
     }
   } else {
     res.json({valid: 'no'});
+    return;
   }
 });
 
@@ -81,6 +84,7 @@ app.post('/login', (req, res) => {
                         .send({error: 'Unauthorized, not proffesor.'});
                   } else {
                     res.json({token: token, full_name: user.cn});
+                    return;
                   }
                 });
           })
@@ -154,6 +158,10 @@ app.post('/sponsor', (req, res) => {
                 db.run('INSERT INTO sponsor VALUES(?,?)',
                     [decoded.user_name, req.body.request_id],
                     (error, rows) => {
+                      if (error) {
+                        res.json({error: 'There is a problem updating the DB'});
+                        return;
+                      }
                       try {
                         const emailCompiled = hbs.compile(
                             fs.readFileSync('views/email/toProfessor.hbs')
@@ -180,13 +188,15 @@ app.post('/sponsor', (req, res) => {
                               if (error) {
                                 console.log(error);
                                 res.json(error);
+                                return;
                               }
                               res.json(info);
+                              return;
                             });
                       } catch (err) {
                         console.log('the mail could not be sent');
-                        res.status(500)
-                            .send({error: 'Sending the email'});
+                        res.json({error: 'The mail could not be sent'});
+                        return;
                       }
                     });
               } catch (err) {
@@ -260,6 +270,11 @@ app.get('/prequest', (req, res) => {
         const query = 'SELECT request_id, Programa, Fecha, PBM, Procedencia, ' +
           'Apoyo, Descripcion FROM request where Apadrinado = 0';
         db.all(query, (error, r) => {
+          if (error) {
+            res.json({error: 'The request doesnt exist'});
+            return;
+          }
+
           try {
             const rows = Array.prototype.slice.call(r);
             rows.map((row) => {
@@ -269,6 +284,7 @@ app.get('/prequest', (req, res) => {
               return getPrioriry(b) - getPrioriry(a);
             });
             res.json({rows});
+            return;
           } catch (err) {
             res.status(500).send({
               error: 'Error retriving values ' +
