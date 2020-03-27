@@ -178,7 +178,7 @@ function includesBogot(procedencia) {
  * 0.5 if it is like tools and 0.3 otherwise.
  */
 function typeSponsor(apoyo) {
-  const normalized =apoyo.toString()
+  const normalized = apoyo.toString()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase();
@@ -197,7 +197,7 @@ function typeSponsor(apoyo) {
  * @return {int} The value of the priority of the register.
  */
 function getPrioriry(row) {
-  return 30 * ((100 - parseInt(row.PBM)) / 100) +
+  return 30 * ((100 - parseInt(row.PBM)) / 100.0) +
     20 * includesBogot(row.Procedencia) +
     50 * typeSponsor(row.Apoyo);
 }
@@ -217,7 +217,8 @@ app.get('/prequest', (req, res) => {
             const rows = Array.prototype.slice.call(r);
             rows.map((row) => {
               row.Fecha = row.Fecha.split('T')[0];
-            }).sort((a, b) => {
+            });
+            rows.sort((a, b) => {
               return getPrioriry(b) - getPrioriry(a);
             });
             res.json({rows});
