@@ -111,54 +111,58 @@ app.post('/sponsor', (req, res) => {
       } else {
         db.run('UPDATE request SET Apadrinado = 1 WHERE request_id like ?',
             [req.body.request_id],
-            (error, rows) => {            
+            (error, rows) => {
+              if (error) {
+                res.json({error: 'Could not update request status'});
+                return;
+              }
             });
-              
-          db.get('SELECT * FROM request WHERE request_id = ?',
-              [req.body.request_id],
-              (err, row) => {              
-                try{         
-                  db.run('INSERT INTO sponsor VALUES(?,?)',
-                      [decoded.user_name, row.Correo],
-                      (error, rows) => {       
-                                  
-                        try{
-                          const emailCompiled = hbs.compile(
-                              fs.readFileSync('views/email/toProfessor.hbs')
-                                  .toString(),
-                          )({
-                            nombre: row.Nombre,
-                            programa: row.Programa,
-                            pbm: row.PBM,
-                            procedencia: row.Procedencia,
-                            apoyo: row.Apoyo,
-                            correo: row.Correo,
-                            celular: row.Celular,
-                            direccion: row.Direccion,
-                          });
-                          const HelperOptions = {
-                            from: 'Decanatura de Ingenieria<decfaci_bog@unal.edu.co>',
-                            to: decoded.mail,
-                            subject: '[Apoya UN] Gracias!',
-                            html: emailCompiled,
-                          };
-                          gmailTransport.sendMail(HelperOptions, (error, info) => {
-                            if (error) {
-                              console.log(error);
-                              res.json(error);
-                            }
-                            res.json(info);
-                          });
-                        }catch (err) {
-                          console.log("the mail could not be sent") 
-                          res.status(500).send({error: 'Something went wrong.'});                         
-                        }                       
-                        
-                      });
-                    }catch{
-                      res.status(400).send({error: 'invalid request id.'});
-                    }
-                });       
+        db.get('SELECT * FROM request WHERE request_id = ?',
+            [req.body.request_id],
+            (err, row) => {
+              try {
+                db.run('INSERT INTO sponsor VALUES(?,?)',
+                    [decoded.user_name, row.Correo],
+                    (error, rows) => {
+                      try {
+                        const emailCompiled = hbs.compile(
+                            fs.readFileSync('views/email/toProfessor.hbs')
+                                .toString(),
+                        )({
+                          nombre: row.Nombre,
+                          programa: row.Programa,
+                          pbm: row.PBM,
+                          procedencia: row.Procedencia,
+                          apoyo: row.Apoyo,
+                          correo: row.Correo,
+                          celular: row.Celular,
+                          direccion: row.Direccion,
+                        });
+                        const HelperOptions = {
+                          from: 'Decanatura de Ingenieria' +
+                            '<decfaci_bog@unal.edu.co>',
+                          to: decoded.mail,
+                          subject: '[Apoya UN] Gracias!',
+                          html: emailCompiled,
+                        };
+                        gmailTransport
+                            .sendMail(HelperOptions, (error, info) => {
+                              if (error) {
+                                console.log(error);
+                                res.json(error);
+                              }
+                              res.json(info);
+                            });
+                      } catch (err) {
+                        console.log('the mail could not be sent');
+                        res.status(500)
+                            .send({error: 'Sending the email'});
+                      }
+                    });
+              } catch (err) {
+                res.status(400).send({error: 'invalid request id.'});
+              }
+            });
       }
     } catch (err) {
       res.status(500).send({error: 'Access token could not be decoded'});
@@ -254,33 +258,31 @@ app.get('/prequest', (req, res) => {
 app.post('/request', (req, res) => {
   const query = 'INSERT INTO request VALUES (?, ?, ?, ?, ?, ?, ?, ' +
     '?, ?, ?, ?, ?, ?, ?)';
-  try{
-  db.run(query, [
-    undefined,
-    req.body.Nombre,
-    req.body.Correo,
-    req.body.Fecha,
-    req.body.Programa,
-    req.body.Tipo_Documento,
-    req.body.Documento,
-    req.body.PBM,
-    req.body.Procedencia,
-    req.body.Celular,
-    req.body.Direccion,
-    req.body.Apoyo,
-    req.body.Descripcion,
-    0,
-  ],
-  (err) => {
-    console.log(err);     
-  });
-  
-  }catch(err){
+  try {
+    db.run(query, [
+      undefined,
+      req.body.Nombre,
+      req.body.Correo,
+      req.body.Fecha,
+      req.body.Programa,
+      req.body.Tipo_Documento,
+      req.body.Documento,
+      req.body.PBM,
+      req.body.Procedencia,
+      req.body.Celular,
+      req.body.Direccion,
+      req.body.Apoyo,
+      req.body.Descripcion,
+      0,
+    ],
+    (err) => {
+      console.log(err);
+    });
+  } catch (err) {
     res.status(500).send({status: 'Internal server error'});
-    Console.log("There's a problem posting the request into the database")
+    Console.log('There is a problem posting the request into the database');
   }
-    res.status(200).send({status: 'Confirmed'});
-  
+  res.status(200).send({status: 'Confirmed'});
 });
 
 const port = (process.env.PORT || 3000);
