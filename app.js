@@ -215,7 +215,9 @@ app.get('/prequest', (req, res) => {
         db.all(query, (error, r) => {
           try {
             const rows = Array.prototype.slice.call(r);
-            rows.sort((a, b) => {
+            rows.map((row) => {
+              row.Fecha = row.Fecha.split('T')[0];
+            }).sort((a, b) => {
               return getPrioriry(b) - getPrioriry(a);
             });
             res.json({rows});
