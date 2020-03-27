@@ -20,7 +20,7 @@ db.serialize(() => {
       'Apadrinado INTEGER)');
 
   db.run('DROP TABLE IF EXISTS sponsor ');
-  db.run('CREATE TABLE sponsor (professor VARCHAR(255), student VARCHAR(255))');
+  db.run('CREATE TABLE sponsor (professor VARCHAR(255), request_id INTEGER)');
 });
 
 db.close();

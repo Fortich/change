@@ -101,6 +101,36 @@ app.post('/login', (req, res) => {
   }
 });
 
+app.get('/sponsor', (req, res) => {
+  const token = req.headers.token;
+  if (token) {
+    try {
+      const decoded = jwt.decode(token, app.get('jwtTokenSecret'));
+      if (decoded.exp <= parseInt(moment().format('X'))) {
+        res.status(400).send({error: 'Access token has expired'});
+      } else {
+        db.all('SELECT * FROM sponsor INNER JOIN request on ' +
+          ' request.request_id = sponsor.request_id where ' +
+          'sponsor.professor like ?',
+        [decoded.user_name],
+        (error, rows) => {
+          if (error) {
+            res.json({error: 'Could not get sponsors'});
+            return;
+          } else {
+            res.json({rows});
+            return;
+          }
+        });
+      }
+    } catch (err) {
+      res.status(500).send({error: 'Access token could not be decoded'});
+    }
+  } else {
+    res.status(400).send({error: 'Access token is missing'});
+  }
+});
+
 app.post('/sponsor', (req, res) => {
   const token = req.headers.token;
   if (token) {
@@ -122,7 +152,7 @@ app.post('/sponsor', (req, res) => {
             (err, row) => {
               try {
                 db.run('INSERT INTO sponsor VALUES(?,?)',
-                    [decoded.user_name, row.Correo],
+                    [decoded.user_name, req.body.request_id],
                     (error, rows) => {
                       try {
                         const emailCompiled = hbs.compile(
