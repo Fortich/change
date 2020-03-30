@@ -16,8 +16,8 @@ db.serialize(() => {
       'CREATE TABLE request (request_id INTEGER PRIMARY KEY AUTOINCREMENT, ' +
       'Nombre TEXT, Correo TEXT, Fecha TEXT, Programa TEXT, ' +
       'Tipo_Documento TEXT, Documento TEXT, PBM TEXT, Procedencia TEXT, ' +
-      'Celular TEXT, Direccion TEXT, Apoyo TEXT, Descripcion TEXT, ' +
-      'Apadrinado INTEGER)');
+      'Bogota TEXT, Celular TEXT, Direccion TEXT, Apoyo TEXT, ' +
+      'Descripcion TEXT, Apadrinado INTEGER)');
 
   db.run('DROP TABLE IF EXISTS sponsor ');
   db.run('CREATE TABLE sponsor (professor VARCHAR(255), request_id INTEGER)');
