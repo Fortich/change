@@ -247,7 +247,8 @@ app.get('/prequest', (req, res) => {
         res.status(400).send({error: 'Access token has expired'});
       } else {
         const query = 'SELECT request_id, Programa, Fecha, PBM, Procedencia, ' +
-          'Apoyo, Descripcion FROM request where Apadrinado = 0 AND Apoyo like "%canasta%"';
+          'Bogota, Apoyo, Descripcion FROM request ' +
+          'where Apadrinado = 0 AND Apoyo like "%canasta%"';
         db.all(query, (error, r) => {
           if (error) {
             res.json({error: 'The request doesnt exist'});
