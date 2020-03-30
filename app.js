@@ -177,7 +177,7 @@ app.post('/sponsor', (req, res) => {
                           direccion: row.Direccion,
                         });
                         const HelperOptions = {
-                          from: 'Decanatura de Ingenieria' +
+                          from: 'Decanatura - Facultad de Ingenieria' +
                             '<decfaci_bog@unal.edu.co>',
                           to: decoded.mail,
                           subject: '[Apoya UN] Gracias!',
@@ -311,7 +311,7 @@ app.post('/request', (req, res) => {
   res.status(200).send({status: 'Confirmed'});
 });
 
-const port = (process.env.PORT || 3000);
+const port = (process.env.PORT || 3001);
 app.listen(port, function() {
   console.log('Listening on port: ' + port);
   if (typeof settings.ldap.reconnect === 'undefined' ||
