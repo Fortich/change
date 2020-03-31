@@ -122,6 +122,9 @@ app.get('/sponsor', (req, res) => {
             res.json({error: 'Could not get sponsors'});
             return;
           } else {
+            rows.map((row) => {
+              row.Fecha = row.Fecha.split('T')[0];
+            });
             res.json({rows});
             return;
           }
