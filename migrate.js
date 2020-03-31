@@ -21,6 +21,9 @@ db.serialize(() => {
 
   db.run('DROP TABLE IF EXISTS sponsor ');
   db.run('CREATE TABLE sponsor (professor VARCHAR(255), request_id INTEGER)');
+
+  db.run('DROP TABLE IF EXISTS recommend ');
+  db.run('CREATE TABLE recommend (name TEXT, email TEXT, type TEXT, msg TEXT)');
 });
 
 db.close();

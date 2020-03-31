@@ -135,6 +135,49 @@ app.get('/sponsor', (req, res) => {
   }
 });
 
+app.get('/recommend', (req, res) => {
+  const token = req.headers.token;
+  if (token) {
+    try {
+      const decoded = jwt.decode(token, app.get('jwtTokenSecret'));
+      if (decoded.exp <= parseInt(moment().format('X'))) {
+        res.status(400).send({error: 'Access token has expired'});
+      } else {
+        const query = 'SELECT * FROM recommend';
+        db.all(query, (error, rows) => {
+          if (error) {
+            res.json({error: 'The request doesnt exist'});
+            return;
+          }
+          res.json({rows});
+        });
+      }
+    } catch (err) {
+      res.status(500).send({error: 'Access token could not be decoded'});
+    }
+  } else {
+    res.status(400).send({error: 'Access token is missing'});
+  }
+});
+
+app.post('/recommend', (req, res) => {
+  const query = 'INSERT INTO recommend VALUES (?, ?, ?, ?)';
+  try {
+    db.run(query, [
+      req.body.name,
+      req.body.email,
+      req.body.type,
+      req.body.msg,
+    ],
+    (err) => {
+      console.log(err);
+    });
+  } catch (err) {
+    res.status(500).send({status: 'Internal server error'});
+  }
+  res.status(200).send({status: 'Confirmed'});
+});
+
 app.post('/sponsor', (req, res) => {
   const token = req.headers.token;
   if (token) {
