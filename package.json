@@ -15,7 +15,7 @@
     "express-hbs": "^2.3.1",
     "express-mailer": "^0.3.1",
     "hamljs": "^0.6.2",
-    "handlebars": "^4.7.3",
+    "handlebars": "^4.7.7",
     "hbs": "^4.1.0",
     "http-errors": "^1.6.3",
     "jade": "^1.11.0",
